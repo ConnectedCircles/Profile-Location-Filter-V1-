@@ -1,6 +1,8 @@
 import pandas as pd
 import streamlit as st
 import base64
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut
 
 def app():
     
