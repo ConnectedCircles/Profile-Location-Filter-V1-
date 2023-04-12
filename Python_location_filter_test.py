@@ -51,9 +51,14 @@ def app():
 
 
         df['Country'] = df['Location2'].apply(get_country)
+        
+        # Get list of unique countries
+        countries = df["Country"].unique().tolist()
 
-        dffiltered = df[df["Country"]=="France"]
-        dffiltered = dffiltered.drop(["Country"], axis=1)
+        # Allow user to select multiple countries from a dropdown list
+        selected_countries = st.multiselect("Select countries to filter by:", countries)
+
+        dffiltered = df[df["Country"].isin(selected_countries)]
 
 
 
