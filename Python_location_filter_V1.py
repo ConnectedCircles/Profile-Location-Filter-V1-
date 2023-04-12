@@ -52,7 +52,7 @@ def app():
 
         df['Country'] = df['Location2'].apply(get_country)
 
-
+        dffiltered = df[df["Country"]=="France"]
 
 
 
