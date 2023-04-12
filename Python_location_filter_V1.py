@@ -5,7 +5,7 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 
 def app():
-    
+
     # Set title and subtitle, additional text
     st.title("Location Filter V2")
     st.subheader("Property of Connected Circles")
@@ -14,17 +14,16 @@ def app():
     inclusion of 'aCCOunt managers' when searching for 'CCO'. Both sets of keywords are fully customizable and keywords can be added or removed. Keywords must 
     be separated by a comma, whitespace will be considered a part of a keyword. You can preview the both the labeled and filtered data in the two preview 
     windows below. You can download the data either labeled, filtered or filtered profile URLs only, all as a .csv""")
-    
-    
-    
+
     # File uploader
     uploaded_file = st.file_uploader("Choose a CSV file to filter", type="csv")
 
     if uploaded_file is not None:
-    
-    
+
         df = pd.read_csv(uploaded_file)
+
         # define a function using GeoPy
+        @st.cache(suppress_st_warning=True)
         def get_country(city):
             try:
                 geolocator = Nominatim(user_agent="MksGeopyApp1")
@@ -32,9 +31,6 @@ def app():
                 return location.address.split(', ')[-1]
             except (AttributeError, GeocoderTimedOut):
                 return None
-    
-    
-
 
         # Clean the location data #####################################################
         # Create new column and make lowercase
@@ -47,18 +43,17 @@ def app():
         # Remove any leading or trailing whitespace in the strings
         df['Location2'] = df['Location2'].str.strip()
 
+        # Get unique country values for filtering
+        countries = df['Location2'].apply(get_country).dropna().unique()
 
+        # Add multiselect for country filtering
+        selected_countries = st.multiselect("Select countries to filter", countries)
 
-
-        df['Country'] = df['Location2'].apply(get_country)
-        
-        # Get list of unique countries
-        countries = df["Country"].unique().tolist()
-
-        # Allow user to select multiple countries from a dropdown list
-        selected_countries = st.multiselect("Select countries to filter by:", countries)
-
-        dffiltered = df[df["Country"].isin(selected_countries)]
+        # Filter data based on selected countries
+        if len(selected_countries) > 0:
+            dffiltered = df[df["Location2"].apply(get_country).isin(selected_countries)]
+        else:
+            dffiltered = df
 
 
 
