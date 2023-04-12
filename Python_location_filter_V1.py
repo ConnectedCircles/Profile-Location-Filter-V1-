@@ -23,32 +23,32 @@ def app():
     
         df = pd.read_csv(uploaded_file)
         # define a function using GeoPy
-def get_country(city):
-    try:
-        geolocator = Nominatim(user_agent="MksGeopyApp1")
-        location = geolocator.geocode(city, timeout=10, language='en')
-        return location.address.split(', ')[-1]
-    except (AttributeError, GeocoderTimedOut):
-        return None
+        def get_country(city):
+            try:
+                geolocator = Nominatim(user_agent="MksGeopyApp1")
+                location = geolocator.geocode(city, timeout=10, language='en')
+                return location.address.split(', ')[-1]
+            except (AttributeError, GeocoderTimedOut):
+                return None
     
     
 
 
-# Clean the location data #####################################################
-# Create new column and make lowercase
-df['Location2'] = df['Location'].str.lower()
-# Define substrings to remove
-substr_to_remove = ["region",'greater', 'area', 'metropolitan']
-# Apply the string replacement for each substring in the list
-for substr in substr_to_remove:
-    df['Location2'] = df['Location2'].str.replace(substr, '')
-# Remove any leading or trailing whitespace in the strings
-df['Location2'] = df['Location2'].str.strip()
+        # Clean the location data #####################################################
+        # Create new column and make lowercase
+        df['Location2'] = df['Location'].str.lower()
+        # Define substrings to remove
+        substr_to_remove = ["region",'greater', 'area', 'metropolitan']
+        # Apply the string replacement for each substring in the list
+        for substr in substr_to_remove:
+            df['Location2'] = df['Location2'].str.replace(substr, '')
+        # Remove any leading or trailing whitespace in the strings
+        df['Location2'] = df['Location2'].str.strip()
 
 
 
 
-df['Country'] = df['Location2'].apply(get_country)
+        df['Country'] = df['Location2'].apply(get_country)
 
 
 
