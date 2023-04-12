@@ -4,46 +4,63 @@ import base64
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 
-@st.cache(ttl=60*60*24) # Cache results for 24 hours
-def get_country(city):
-    try:
-        geolocator = Nominatim(user_agent="MksGeopyApp1")
-        location = geolocator.geocode(city, timeout=10, language='en')
-        return location.address.split(', ')[-1]
-    except (AttributeError, GeocoderTimedOut):
-        return None
-
 def app():
+
     # Set title and subtitle, additional text
     st.title("Location Filter V2")
     st.subheader("Property of Connected Circles")
-    st.write("""This app allows you to filter lists of profiles by seniority. By default, it uses a set of keywords to detect and filter CXO+ level profiles 
-    (incl. partners and VPs etc.). It uses 2 sets of keywords, one that is case-sensitive and one that is case insensitive. This avoids errors such as the 
-    inclusion of 'aCCOunt managers' when searching for 'CCO'. Both sets of keywords are fully customizable and keywords can be added or removed. Keywords must 
-    be separated by a comma, whitespace will be considered a part of a keyword. You can preview the both the labeled and filtered data in the two preview 
-    windows below. You can download the data either labeled, filtered or filtered profile URLs only, all as a .csv""")
-    
+    st.write("""This app allows you to filter lists of profiles by country. By default, LinkedIn displays location in no set format 
+    (can be city, region, country). This means that there are millions of possible values. This app uses Google Maps API to convert 
+    the location into the name of a country. You can subsequently select the countries you want to include. You can preview the both 
+    the labeled and filtered data in the two preview windows below. You can download the data either labeled, filtered or filtered 
+    profile URLs only, all as a .csv""")
+
     # File uploader
     uploaded_file = st.file_uploader("Choose a CSV file to filter", type="csv")
 
     if uploaded_file is not None:
+
         df = pd.read_csv(uploaded_file)
 
-        # Clean the location data
-        df['Country'] = df['Location'].apply(get_country)
-        
-        # Remove unnecessary columns
-        df = df.drop(columns=['Location', 'Location2'], errors='ignore')
+        # define a function using GeoPy
+        @st.cache(suppress_st_warning=True)
+        def get_country(city):
+            try:
+                geolocator = Nominatim(user_agent="MksGeopyApp1")
+                location = geolocator.geocode(city, timeout=10, language='en')
+                return location.address.split(', ')[-1]
+            except (AttributeError, GeocoderTimedOut):
+                return None
 
-        # Country filter
-        countries = st.multiselect('Select countries', sorted(df['Country'].unique()))
-        if countries:
-            dffiltered = df[df["Country"].isin(countries)]
+        ##### Clean the location data #################################################
+        # Create new column and make lowercase
+        df['Location2'] = df['Location'].str.lower()
+        # Define substrings to remove
+        substr_to_remove = ["region",'greater', 'area', 'metropolitan']
+        # Apply the string replacement for each substring in the list
+        for substr in substr_to_remove:
+            df['Location2'] = df['Location2'].str.replace(substr, '')
+        # Remove any leading or trailing whitespace in the strings
+        df['Location2'] = df['Location2'].str.strip()
+        ###############################################################################
+        
+        # Get unique country values for filtering
+        countries = df['Location2'].apply(get_country).dropna().unique()
+
+        # Add multiselect for country filtering
+        selected_countries = st.multiselect("Select countries to filter", countries)
+
+        # Filter data based on selected countries
+        if len(selected_countries) > 0:
+            dffiltered = df[df["Location2"].apply(get_country).isin(selected_countries)]
         else:
-            dffiltered = df.copy()
+            dffiltered = df
 
-        
-        
+
+
+
+
+
         # Download link for filtered data
         csv_filtered = dffiltered.to_csv(index=False)
         b64_filtered = base64.b64encode(csv_filtered.encode('utf-8')).decode()
@@ -55,7 +72,8 @@ def app():
         href_unfiltered = f'<a href="data:file/csv;base64,{b64_unfiltered}" download="unfiltered_data.csv">Download Unfiltered Labeled CSV File</a>'
         
         # Download link for filtered data URLs only, no header
-        url_col = dffiltered["Profile url"].dropna().astype(str)
+        url_col = dffiltered["Profile url"].
+        na().astype(str)
         csv_url = url_col.to_csv(index=False, header=False)
         b64_url = base64.b64encode(csv_url.encode('utf-8')).decode()
         href_url = f'<a href="data:file/csv;base64,{b64_url}" download="profile_urls.csv">Download Filtered Profile URLs only CSV File</a>'
